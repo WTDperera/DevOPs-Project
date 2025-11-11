@@ -250,7 +250,10 @@ pipeline {
 
         stage('Tag & Push Images') {
             when {
-                branch 'main'
+                anyOf {
+                    branch 'main'
+                    branch 'origin/main'
+                }
             }
             steps {
                 echo '🏷️  Tagging and pushing Docker images to Docker Hub...'
