@@ -302,8 +302,6 @@ pipeline {
                 }
             }
         }
-            }
-        }
 
         stage('Deploy to Staging') {
             when {
