@@ -259,9 +259,8 @@ pipeline {
 
         stage('Tag & Push Images') {
             when {
-                anyOf {
-                    branch 'main'
-                    branch 'origin/main'
+                expression { 
+                    return env.BRANCH_NAME == 'main' || env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main'
                 }
             }
             steps {
