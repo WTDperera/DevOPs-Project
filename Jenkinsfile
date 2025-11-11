@@ -93,19 +93,30 @@ pipeline {
                 echo '🐳 Building Docker images for production...'
                 
                 script {
-                    // Build all services using docker-compose
-                    sh """
-                        echo "Building images with docker-compose..."
-                        docker-compose -f ${COMPOSE_FILE_PROD} build --no-cache
-                    """
-                    
-                    echo '✅ Docker images built successfully'
-                    
-                    // List built images
-                    sh '''
-                        echo "📦 Built images:"
-                        docker images | grep lotus
-                    '''
+                    // Export environment variables for docker-compose
+                    // This ensures any variables in docker-compose.yml are properly resolved
+                    withEnv([
+                        "COMPOSE_PROJECT_NAME=${PROJECT_NAME}",
+                        "IMAGE_TAG=${IMAGE_TAG}"
+                    ]) {
+                        // Build all services using docker-compose
+                        sh """
+                            echo "Building images with docker-compose..."
+                            echo "Project: ${PROJECT_NAME}"
+                            echo "Image Tag: ${IMAGE_TAG}"
+                            
+                            # Build without cache to ensure fresh builds
+                            docker-compose -f ${COMPOSE_FILE_PROD} build --no-cache --parallel
+                        """
+                        
+                        echo '✅ Docker images built successfully'
+                        
+                        // List built images
+                        sh '''
+                            echo "📦 Built images:"
+                            docker images | grep lotus || docker images | head -10
+                        '''
+                    }
                 }
             }
         }
