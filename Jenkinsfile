@@ -28,6 +28,10 @@ pipeline {
         // Project information
         PROJECT_NAME = 'lotus-video-platform'
         
+        // Docker Hub configuration
+        DOCKERHUB_USERNAME = 'tharindu5242'
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
+        
         // Docker image tags
         IMAGE_TAG = "${env.BUILD_NUMBER}"
         LATEST_TAG = 'latest'
@@ -249,31 +253,55 @@ pipeline {
                 branch 'main'
             }
             steps {
-                echo '🏷️  Tagging Docker images...'
+                echo '🏷️  Tagging and pushing Docker images to Docker Hub...'
                 
                 script {
-                    // Tag images with build number
+                    // Login to Docker Hub
                     sh """
-                        docker tag lotus-video-platform-backend lotus-backend:${IMAGE_TAG}
-                        docker tag lotus-video-platform-frontend lotus-frontend:${IMAGE_TAG}
-                        docker tag lotus-video-platform-nginx lotus-nginx:${IMAGE_TAG}
+                        echo \$DOCKERHUB_CREDENTIALS_PSW | docker login -u \$DOCKERHUB_CREDENTIALS_USR --password-stdin
+                    """
+                    
+                    echo '✅ Logged in to Docker Hub'
+                    
+                    // Tag images with Docker Hub username
+                    sh """
+                        # Tag backend images
+                        docker tag lotus-video-platform-backend ${DOCKERHUB_USERNAME}/lotus-backend:${IMAGE_TAG}
+                        docker tag lotus-video-platform-backend ${DOCKERHUB_USERNAME}/lotus-backend:${LATEST_TAG}
                         
-                        docker tag lotus-video-platform-backend lotus-backend:${LATEST_TAG}
-                        docker tag lotus-video-platform-frontend lotus-frontend:${LATEST_TAG}
-                        docker tag lotus-video-platform-nginx lotus-nginx:${LATEST_TAG}
+                        # Tag frontend images
+                        docker tag lotus-video-platform-frontend ${DOCKERHUB_USERNAME}/lotus-frontend:${IMAGE_TAG}
+                        docker tag lotus-video-platform-frontend ${DOCKERHUB_USERNAME}/lotus-frontend:${LATEST_TAG}
+                        
+                        # Tag nginx images
+                        docker tag lotus-video-platform-nginx ${DOCKERHUB_USERNAME}/lotus-nginx:${IMAGE_TAG}
+                        docker tag lotus-video-platform-nginx ${DOCKERHUB_USERNAME}/lotus-nginx:${LATEST_TAG}
                     """
                     
                     echo '✅ Images tagged successfully'
                     
-                    // Note: Push to Docker registry would go here
-                    // Uncomment and configure when ready:
-                    // withDockerRegistry([credentialsId: 'docker-hub-credentials', url: '']) {
-                    //     sh 'docker push yourusername/lotus-backend:${IMAGE_TAG}'
-                    //     sh 'docker push yourusername/lotus-backend:${LATEST_TAG}'
-                    //     sh 'docker push yourusername/lotus-frontend:${IMAGE_TAG}'
-                    //     sh 'docker push yourusername/lotus-frontend:${LATEST_TAG}'
-                    // }
+                    // Push images to Docker Hub
+                    sh """
+                        echo "📤 Pushing backend images..."
+                        docker push ${DOCKERHUB_USERNAME}/lotus-backend:${IMAGE_TAG}
+                        docker push ${DOCKERHUB_USERNAME}/lotus-backend:${LATEST_TAG}
+                        
+                        echo "📤 Pushing frontend images..."
+                        docker push ${DOCKERHUB_USERNAME}/lotus-frontend:${IMAGE_TAG}
+                        docker push ${DOCKERHUB_USERNAME}/lotus-frontend:${LATEST_TAG}
+                        
+                        echo "📤 Pushing nginx images..."
+                        docker push ${DOCKERHUB_USERNAME}/lotus-nginx:${IMAGE_TAG}
+                        docker push ${DOCKERHUB_USERNAME}/lotus-nginx:${LATEST_TAG}
+                    """
+                    
+                    echo '✅ All images pushed to Docker Hub successfully!'
+                    
+                    // Logout from Docker Hub
+                    sh 'docker logout'
                 }
+            }
+        }
             }
         }
 
