@@ -103,15 +103,24 @@ pipeline {
                         "COMPOSE_PROJECT_NAME=${PROJECT_NAME}",
                         "IMAGE_TAG=${IMAGE_TAG}"
                     ]) {
-                        // Build all services using docker-compose
-                        sh """
-                            echo "Building images with docker-compose..."
-                            echo "Project: ${PROJECT_NAME}"
-                            echo "Image Tag: ${IMAGE_TAG}"
-                            
-                            # Build without cache to ensure fresh builds
-                            docker-compose -f ${COMPOSE_FILE_PROD} build --no-cache --parallel
-                        """
+                        // Retry build up to 2 times in case of transient network errors
+                        retry(2) {
+                            try {
+                                // Build all services using docker-compose
+                                sh """
+                                    echo "Building images with docker-compose..."
+                                    echo "Project: ${PROJECT_NAME}"
+                                    echo "Image Tag: ${IMAGE_TAG}"
+                                    
+                                    # Build without cache to ensure fresh builds
+                                    docker-compose -f ${COMPOSE_FILE_PROD} build --no-cache --parallel
+                                """
+                            } catch (Exception e) {
+                                echo "⚠️  Build failed, cleaning up and retrying..."
+                                sh 'docker system prune -f || true'
+                                throw e
+                            }
+                        }
                         
                         echo '✅ Docker images built successfully'
                         
